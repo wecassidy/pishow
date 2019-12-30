@@ -13,7 +13,7 @@ import cairo
 IMG_DIR = "/home/wec/Pictures"
 IMG_POLL_RATE = 1 # minute
 
-DWELL_TIME = 5 # seconds
+DWELL_TIME = 10 # seconds
 REFRESH_RATE = 10 # milliseconds
 
 def get_files_recursive(root_dir):
@@ -61,9 +61,18 @@ class Slideshow(Gtk.DrawingArea):
             self.current_image = next(self.images)
             self.last_switch = now
 
-        img = GdkPixbuf.Pixbuf.new_from_file(self.current_image)
-        Gdk.cairo_set_source_pixbuf(cr, img, 5, 5)
-        cr.paint()
+        size = self.get_allocation()
+
+        try:
+            img = GdkPixbuf.Pixbuf.new_from_file_at_size(
+                self.current_image,
+                size.width,
+                size.height
+            )
+            Gdk.cairo_set_source_pixbuf(cr, img, 5, 5)
+            cr.paint()
+        except gi.repository.GLib.GError:
+            self.current_image = next(self.images)
 
 if __name__ == "__main__":
     # Set up drawing area
