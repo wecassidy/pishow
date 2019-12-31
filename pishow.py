@@ -7,13 +7,17 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
 gi.require_version("Gdk", "3.0")
 gi.require_foreign("cairo")
-from gi.repository import Gdk, GdkPixbuf, GLib, Gtk
+from gi.repository import GLib, Gtk
 import cairo
+
+import PIL.Image as Image
 
 IMG_DIR = "/home/wec/Pictures"
 IMG_POLL_RATE = 1 # minute
 
-DWELL_TIME = 10 # seconds
+DWELL_TIME = 5 # seconds
+FADE_TIME = 1 # seconds
+
 REFRESH_RATE = 10 # milliseconds
 
 def get_files_recursive(root_dir):
@@ -39,7 +43,8 @@ class Slideshow(Gtk.DrawingArea):
         self.connect("draw", self.slideshow)
 
         self.images = iter(image_source)
-        self.current_image = next(self.images)
+        self.last_image = None
+        self.current_image = SlideImage(next(self.images))
         self.last_switch = time.time()
 
         self.dwell = dwell
@@ -58,21 +63,70 @@ class Slideshow(Gtk.DrawingArea):
         """Run the slideshow"""
         now = time.time()
         if now - self.last_switch > self.dwell:
-            self.current_image = next(self.images)
+            self.switch_images()
             self.last_switch = now
 
-        size = self.get_allocation()
+        self.current_image.fade_in(self.last_switch)
 
-        try:
-            img = GdkPixbuf.Pixbuf.new_from_file_at_size(
-                self.current_image,
-                size.width,
-                size.height
-            )
-            Gdk.cairo_set_source_pixbuf(cr, img, 5, 5)
-            cr.paint()
-        except gi.repository.GLib.GError:
-            self.current_image = next(self.images)
+        for img in self.last_image, self.current_image:
+            if img is not None:
+                surface = img.surface()
+                scale = self.scale_to_fit(surface)
+                cr.save()
+                cr.scale(scale, scale)
+                cr.set_source_surface(surface, *img.pos)
+                cr.paint()
+                cr.restore()
+
+    def scale_to_fit(self, surface):
+        """
+        Calculate the scaling for a given surface to fit it the
+        container, preserving aspect ratio.
+
+        Based on https://stackoverflow.com/q/7145780/3311667.
+        """
+        size = self.get_allocation()
+        width_ratio = float(size.width) / float(surface.get_width())
+        height_ratio = float(size.height) / float(surface.get_height())
+        scale_xy = min(height_ratio, width_ratio)
+        return scale_xy
+
+    def switch_images(self):
+        next_image = None
+        while next_image is None:
+            try:
+                next_image = SlideImage(next(self.images))
+            except FileNotFoundError:
+                pass
+        self.last_image = self.current_image
+        self.current_image = next_image
+
+class SlideImage:
+    """An animated image in the slideshow"""
+    def __init__(self, filename, x=0, y=0, zoom=1, alpha=1):
+        self.filename = filename
+        self.image = Image.open(filename)
+        self.pos = (x, y)
+        self.zoom = zoom
+        self.alpha = alpha
+
+    def surface(self):
+        """
+        Convert the image to a Cairo surface. Copied from
+        https://pycairo.readthedocs.io/en/latest/integration.html#pillow-pil-cairo
+        """
+        self.image.putalpha(int(self.alpha * 256))
+        arr = bytearray(self.image.tobytes('raw', 'BGRa'))
+        surface = cairo.ImageSurface.create_for_data(
+            arr,
+            cairo.Format.ARGB32,
+            self.image.width,
+            self.image.height
+        )
+        return surface
+
+    def fade_in(self, start, fade_time=FADE_TIME):
+        self.alpha = min((time.time() - start) / FADE_TIME, 1)
 
 if __name__ == "__main__":
     # Set up drawing area
