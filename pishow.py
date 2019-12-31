@@ -62,25 +62,42 @@ class Slideshow(Gtk.DrawingArea):
 
         self.current_image.fade_in(self.last_switch)
 
-        for img in self.last_image, self.current_image:
-            if img is not None:
-                surface = img.surface()
-                size = self.get_allocation()
-                scale = self.scale_to_fit(surface)
-                translation = self.centre(surface, scale)
+        if self.last_image is not None and self.current_image.alpha < 1:
+            surface = self.last_image.surface()
+            size = self.get_allocation()
+            scale = self.scale_to_fit(surface)
+            translation = self.centre(surface, scale)
 
-                # Black background
-                cr.set_source_rgba(0, 0, 0, img.alpha)
-                cr.rectangle(0, 0, size.width, size.height)
-                cr.fill()
+            # Black background
+            cr.set_source_rgba(0, 0, 0, self.last_image.alpha)
+            cr.rectangle(0, 0, size.width, size.height)
+            cr.fill()
 
-                # Image
-                cr.save()
-                cr.translate(*translation)
-                cr.scale(scale, scale)
-                cr.set_source_surface(surface, 0, 0)
-                cr.paint_with_alpha(img.alpha)
-                cr.restore()
+            # Image
+            cr.save()
+            cr.translate(*translation)
+            cr.scale(scale, scale)
+            cr.set_source_surface(surface, 0, 0)
+            cr.paint_with_alpha(self.last_image.alpha)
+            cr.restore()
+
+        surface = self.current_image.surface()
+        size = self.get_allocation()
+        scale = self.scale_to_fit(surface)
+        translation = self.centre(surface, scale)
+
+        # Black background
+        cr.set_source_rgba(0, 0, 0, self.current_image.alpha)
+        cr.rectangle(0, 0, size.width, size.height)
+        cr.fill()
+
+        # Image
+        cr.save()
+        cr.translate(*translation)
+        cr.scale(scale, scale)
+        cr.set_source_surface(surface, 0, 0)
+        cr.paint_with_alpha(self.current_image.alpha)
+        cr.restore()
 
     def scale_to_fit(self, surface):
         """
