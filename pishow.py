@@ -71,13 +71,21 @@ class Slideshow(Gtk.DrawingArea):
         for img in self.last_image, self.current_image:
             if img is not None:
                 surface = img.surface()
+                size = self.get_allocation()
                 scale = self.scale_to_fit(surface)
                 translation = self.centre(surface, scale)
+
+                # Black background
+                cr.set_source_rgba(0, 0, 0, img.alpha)
+                cr.rectangle(0, 0, size.width, size.height)
+                cr.fill()
+
+                # Image
                 cr.save()
                 cr.translate(*translation)
                 cr.scale(scale, scale)
                 cr.set_source_surface(surface, 0, 0)
-                cr.paint()
+                cr.paint_with_alpha(img.alpha)
                 cr.restore()
 
     def scale_to_fit(self, surface):
@@ -127,7 +135,7 @@ class SlideImage:
         Convert the image to a Cairo surface. Copied from
         https://pycairo.readthedocs.io/en/latest/integration.html#pillow-pil-cairo
         """
-        self.image.putalpha(int(self.alpha * 256))
+        self.image.putalpha(256)
         arr = bytearray(self.image.tobytes('raw', 'BGRa'))
         surface = cairo.ImageSurface.create_for_data(
             arr,
@@ -138,7 +146,7 @@ class SlideImage:
         return surface
 
     def fade_in(self, start, fade_time=FADE_TIME):
-        self.alpha = min((time.time() - start) / FADE_TIME, 1)
+        self.alpha = min((time.time() - start) / fade_time, 1)
 
 if __name__ == "__main__":
     # Set up drawing area
