@@ -12,13 +12,7 @@ import cairo
 
 import PIL.Image as Image
 
-IMG_DIR = "/home/wec/Pictures"
-IMG_POLL_RATE = 1 # minute
-
-DWELL_TIME = 5 # seconds
-FADE_TIME = 1 # seconds
-
-REFRESH_RATE = 10 # milliseconds
+import config
 
 def get_files_recursive(root_dir):
     """Yield an iterator of file paths in root_dir."""
@@ -27,7 +21,7 @@ def get_files_recursive(root_dir):
             yield os.path.join(directory[0], file)
 
 class Slideshow(Gtk.DrawingArea):
-    def __init__(self, image_source, dwell, refresh_rate=REFRESH_RATE):
+    def __init__(self, image_source, dwell, refresh_rate=config.REFRESH_RATE):
         """Set up the slideshow.
 
         @param image_source: a non-empty iterable of path-like objects
@@ -145,7 +139,7 @@ class SlideImage:
         )
         return surface
 
-    def fade_in(self, start, fade_time=FADE_TIME):
+    def fade_in(self, start, fade_time=config.FADE_TIME):
         self.alpha = min((time.time() - start) / fade_time, 1)
 
 if __name__ == "__main__":
@@ -154,10 +148,10 @@ if __name__ == "__main__":
     window.connect("destroy", Gtk.main_quit)
     window.maximize()
 
-    files = get_files_recursive(IMG_DIR)
+    files = get_files_recursive(config.IMG_DIR)
     images = filter(lambda f: imghdr.what(f) is not None, files)
 
-    slides = Slideshow(images, DWELL_TIME)
+    slides = Slideshow(images, config.DWELL_TIME)
     window.add(slides)
 
     window.show_all()
