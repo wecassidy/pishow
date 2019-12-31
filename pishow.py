@@ -91,6 +91,16 @@ class Slideshow(Gtk.DrawingArea):
         scale_xy = min(height_ratio, width_ratio)
         return scale_xy
 
+    def centre(self, surface):
+        """
+        Calculate the (x, y) coordinates of the top left corner of the
+        given surface to centre it on the container.
+        """
+        size = self.get_allocation()
+        x = (size.width - surface.get_width()) / 2
+        y = (size.height - surface.get_height()) / 2
+        return x, y
+
     def switch_images(self):
         next_image = None
         while next_image is None:
