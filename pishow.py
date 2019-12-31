@@ -72,9 +72,11 @@ class Slideshow(Gtk.DrawingArea):
             if img is not None:
                 surface = img.surface()
                 scale = self.scale_to_fit(surface)
+                translation = self.centre(surface, scale)
                 cr.save()
+                cr.translate(*translation)
                 cr.scale(scale, scale)
-                cr.set_source_surface(surface, *img.pos)
+                cr.set_source_surface(surface, 0, 0)
                 cr.paint()
                 cr.restore()
 
@@ -91,14 +93,14 @@ class Slideshow(Gtk.DrawingArea):
         scale_xy = min(height_ratio, width_ratio)
         return scale_xy
 
-    def centre(self, surface):
+    def centre(self, surface, scale):
         """
         Calculate the (x, y) coordinates of the top left corner of the
         given surface to centre it on the container.
         """
         size = self.get_allocation()
-        x = (size.width - surface.get_width()) / 2
-        y = (size.height - surface.get_height()) / 2
+        x = (size.width - surface.get_width() * scale) / 2
+        y = (size.height - surface.get_height() * scale) / 2
         return x, y
 
     def switch_images(self):
